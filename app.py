@@ -17,50 +17,76 @@ from datetime import datetime
 # ================= CONFIGURACIÓN DE PÁGINA =================
 st.set_page_config(page_title="Churrasco & Terraza PWA - Executive Management", page_icon="🏢", layout="wide")
 
-# ================= CSS PREMIUM (SAAS / POWERBI EXECUTIVE STYLE) =================
+# Inicialización de Estado de Sesión para Navegación Lateral por Botones
+if "modulo_activo" not in st.session_state:
+    st.session_state.modulo_activo = "🏢 P&L: Sociedad Principal (3 Locales)"
+
+# ================= CSS PREMIUM (SAAS / POWERBI BLOOMBERG COMPACT STYLE) =================
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    
     /* Dark Executive Core */
-    .stApp { background-color: #0b0f19; color: #c9d1d9; font-family: 'Inter', sans-serif; }
+    * { font-family: 'Plus Jakarta Sans', sans-serif !important; }
+    .stApp { background-color: #0b0f19; color: #c9d1d9; }
     
     /* Premium Corporate Header */
     .premium-header { 
         text-align: center; 
-        padding: 30px 20px; 
+        padding: 24px 20px; 
         background: linear-gradient(135deg, #161f33 0%, #0b0f19 100%); 
-        border-radius: 16px; 
-        margin-bottom: 30px; 
-        box-shadow: 0 8px 32px rgba(0,0,0,0.8); 
+        border-radius: 14px; 
+        margin-bottom: 25px; 
+        box-shadow: 0 6px 24px rgba(0,0,0,0.6); 
         border: 1px solid #253352;
     }
-    .premium-header h1 { color: #ffffff; margin-bottom: 8px; font-weight: 800; letter-spacing: -1px; text-shadow: 0 0 25px rgba(0, 242, 254, 0.2); }
-    .premium-header p { color: #00f2fe; font-size: 1.2rem; font-weight: 500; margin: 0; }
+    .premium-header h1 { color: #ffffff; margin-bottom: 6px; font-weight: 800; font-size: 2.1rem; letter-spacing: -0.5px; text-shadow: 0 0 20px rgba(0, 242, 254, 0.2); }
+    .premium-header p { color: #00f2fe; font-size: 1.05rem; font-weight: 600; margin: 0; }
     
     /* Main Call to Action Button */
     .stButton>button { 
-        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); 
-        color: white !important; 
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: 700; 
-        border-radius: 10px; 
+        border-radius: 8px; 
         border: none; 
-        padding: 14px 28px; 
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+        padding: 10px 20px; 
+        transition: all 0.2s ease; 
     }
-    .stButton>button:hover { 
-        transform: translateY(-2px); 
-        box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5); 
-        background: linear-gradient(90deg, #00f5a0 0%, #00d2ff 100%);
+    [data-testid="stSidebar"] .stButton>button {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+        margin-bottom: 8px !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        border: 1px solid #253352 !important;
+    }
+    [data-testid="stSidebar"] .stButton>button[data-baseweb="button"] {
+        background-color: #161f33 !important;
+        color: #c9d1d9 !important;
+    }
+    [data-testid="stSidebar"] .stButton>button[data-baseweb="button"]:hover {
+        border-color: #00f2fe !important;
+        color: #ffffff !important;
+        background-color: #1c2742 !important;
+    }
+    /* Estilo para botón activo en el sidebar (primario) */
+    [data-testid="stSidebar"] button[kind="primary"] { 
+        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important; 
+        color: #ffffff !important; 
+        font-weight: 700 !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3) !important;
     }
     
     /* File Uploader Container */
     [data-testid="stFileUploadDropzone"] {
         background-color: #161f33;
         border: 2px dashed #253352;
-        border-radius: 12px;
-        padding: 40px 20px;
-        transition: all 0.3s ease;
+        border-radius: 10px;
+        padding: 30px 15px;
+        transition: all 0.2s ease;
     }
     [data-testid="stFileUploadDropzone"]:hover {
         border-color: #00f2fe;
@@ -78,45 +104,66 @@ st.markdown("""
         background-color: #161f33;
         color: white;
         border: 1px solid #253352;
-        border-radius: 8px;
-        padding: 12px;
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 0.9rem;
     }
     .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
         border-color: #00f2fe;
         box-shadow: 0 0 0 1px #00f2fe;
     }
     
-    /* Info Boxes & Alerts */
+    /* Info Boxes & Alerts - Ultra Compact */
     .stAlert {
         background-color: #161f33;
         color: #c9d1d9;
         border: 1px solid #253352;
         border-left: 4px solid #00f2fe;
-        border-radius: 8px;
+        border-radius: 6px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
     }
     
-    /* KPI Metric Cards Customization */
+    /* KPI Metric Cards Customization - Compact & Bold */
     [data-testid="stMetricValue"] {
-        font-size: 2.2rem !important;
+        font-size: 1.65rem !important;
         font-weight: 800 !important;
         color: #ffffff !important;
+        line-height: 1.2 !important;
     }
     [data-testid="stMetricLabel"] {
-        font-size: 1.05rem !important;
-        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
         color: #00f2fe !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     
-    /* Glassmorphism Section Containers */
+    /* Glassmorphism Section Containers - Ultra Compact */
     .glass-container {
         background: rgba(22, 31, 51, 0.6);
         backdrop-filter: blur(10px);
         border: 1px solid #253352;
-        border-radius: 16px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
     }
+    
+    /* Section Headers Compact */
+    .section-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-top: 0;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #253352;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .section-title span { color: #00f2fe; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -167,9 +214,9 @@ DIR_PLANTILLAS = "plantillas_fijas"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(DIR_PLANTILLAS, exist_ok=True)
 
-# ================= SIDEBAR DE NAVEGACIÓN CORPORATIVA =================
+# ================= SIDEBAR DE NAVEGACIÓN CORPORATIVA (BOTONES PUROS) =================
 with st.sidebar:
-    st.markdown("<h2 style='text-align: center; color: white;'>🏢 Menú Corporativo</h2>", unsafe_allow_html=True)
+    st.markdown("<div style='padding: 15px 10px; text-align: center;'><h2 style='color: white; font-weight: 800; font-size: 1.4rem; margin:0;'>🏢 Menú Corporativo</h2></div>", unsafe_allow_html=True)
     
     col_l1, col_l2 = st.columns(2)
     if os.path.exists("logos/churrasco_planet.png"):
@@ -178,18 +225,21 @@ with st.sidebar:
         col_l2.image("logos/la_terraza.png", use_container_width=True)
         
     st.markdown("---")
+    st.markdown("<p style='color: #8b949e; font-size: 0.75rem; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;'>📌 Módulos de Gestión</p>", unsafe_allow_html=True)
     
-    modulo_activo = st.radio(
-        "📌 SELECCIONA MÓDULO:", 
-        [
-            "🚀 Ensamblador IA (Marketing)", 
-            "🏢 P&L: Sociedad Principal (3 Locales)", 
-            "🏪 P&L: Local Maipú (Independiente)", 
-            "📥 Carga RCV SII & Registro Móvil", 
-            "⚙️ Plantillas de Marca (Config)"
-        ]
-    )
+    opciones = [
+        "🚀 Ensamblador IA (Marketing)", 
+        "🏢 P&L: Sociedad Principal (3 Locales)", 
+        "🏪 P&L: Local Maipú (Independiente)", 
+        "📥 Carga RCV SII & Registro Móvil", 
+        "⚙️ Plantillas de Marca (Config)"
+    ]
     
+    for op in opciones:
+        if st.button(op, use_container_width=True, type="primary" if st.session_state.modulo_activo == op else "secondary"):
+            st.session_state.modulo_activo = op
+            st.rerun()
+            
     st.markdown("---")
     
     with st.expander("🔑 Configuración Avanzada (API Key)"):
@@ -203,20 +253,24 @@ with st.sidebar:
 st.markdown("<div class='premium-header'><h1>🏢 Churrasco & Terraza PWA</h1><p>Sistema Integral de Gestión Ejecutiva y P&L en Cascada</p></div>", unsafe_allow_html=True)
 
 # ================= EJECUCIÓN MODULAR A PANTALLA COMPLETA =================
+modulo_activo = st.session_state.modulo_activo
 
 # ----------------- VISTA 1: ENSAMBLADOR IA DE MARKETING -----------------
 if modulo_activo == "🚀 Ensamblador IA (Marketing)":
-    st.markdown("<h2 style='color: white;'>🎨 Motor de Ensamblado de Marketing IA</h2>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<div class='section-title'><span>🎨</span> Motor de Ensamblado de Marketing IA</div>", unsafe_allow_html=True)
     
     c1_up, c2_up = st.columns([2, 1])
     with c1_up:
+        st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
         st.subheader("Paso 1: Sube tu Diseño Principal")
         imagen_portada = st.file_uploader("🖼️ Selecciona tu Slide 1 (Soporta .jpg, .png, .mp4, .mov)", type=["png", "jpg", "jpeg", "mp4", "mov"])
+        st.markdown("</div>", unsafe_allow_html=True)
     with c2_up:
+        st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
         st.subheader("Paso 2: Detalles")
         marca_forzada = st.radio("🏢 Marca:", ["Churrasco Planet", "La Terraza Familiar"])
         instruccion_agente = st.text_area("💬 Contexto (Opcional):", placeholder="Ej: 'Oferta exclusiva por el día del niño, válido hasta el domingo.'")
+        st.markdown("</div>", unsafe_allow_html=True)
     
     st.markdown("---")
     if st.button("🚀 INICIAR ENSAMBLADO MÁGICO", type="primary", use_container_width=True):
@@ -358,7 +412,7 @@ elif "P&L:" in modulo_activo:
     sociedad_activa = "Sociedad_Principal" if "Principal" in modulo_activo else "Local_Maipu"
     titulo_vista = "Sociedad Principal (Providencia, Ñuñoa, Stgo Centro)" if "Principal" in modulo_activo else "Local Maipú (Independiente)"
     
-    st.markdown(f"<h2 style='color: white;'>📊 Estado de Resultados P&L - {titulo_vista}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'><span>📊</span> Estado de Resultados P&L - {titulo_vista}</div>", unsafe_allow_html=True)
     
     # Barra de Filtros de Fecha
     c_f1, c_f2 = st.columns(2)
@@ -371,7 +425,7 @@ elif "P&L:" in modulo_activo:
     pl_data = core.calcular_pl_consolidado(sociedad_activa, f_ini, f_fin)
     res = pl_data["resumen"]
     
-    # TARJETAS KPI DE ALTO NIVEL (5 COLUMNAS)
+    # TARJETAS KPI DE ALTO NIVEL (5 COLUMNAS) - COMPACT & BOLD
     k1, k2, k3, k4, k5 = st.columns(5)
     k1.metric("🟢 Ingresos Totales", f"${res['ingresos_totales']:,.0f}")
     k2.metric("🟡 Compras / Costos Fijos", f"${res['costos_fijos_totales']:,.0f}")
@@ -383,7 +437,7 @@ elif "P&L:" in modulo_activo:
     
     # CASCADA VERTICAL: SECCIÓN 1 - INGRESOS
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
-    st.markdown("### 🟢 1. Ingresos por Canal de Venta")
+    st.markdown("<div class='section-title'><span>🟢 1.</span> Ingresos por Canal de Venta</div>", unsafe_allow_html=True)
     if pl_data["desglose_ingresos"]["por_canal"]:
         df_ing_canal = pd.DataFrame(list(pl_data["desglose_ingresos"]["por_canal"].items()), columns=["Canal de Venta", "Monto Ingresado"])
         st.dataframe(df_ing_canal.style.format({"Monto Ingresado": "${:,.0f}"}), use_container_width=True)
@@ -392,7 +446,7 @@ elif "P&L:" in modulo_activo:
     
     # CASCADA VERTICAL: SECCIÓN 2 - COMPRAS DIRECTAS Y COSTOS FIJOS
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
-    st.markdown("### 🟡 2. Compras Directas y Costos Fijos por Categoría")
+    st.markdown("<div class='section-title'><span>🟡 2.</span> Compras Directas y Costos Fijos por Categoría</div>", unsafe_allow_html=True)
     if pl_data["desglose_costos_fijos"]["por_categoria"]:
         df_cf_cat = pd.DataFrame(list(pl_data["desglose_costos_fijos"]["por_categoria"].items()), columns=["Categoría de Costo", "Monto Gastado"])
         st.dataframe(df_cf_cat.style.format({"Monto Gastado": "${:,.0f}"}), use_container_width=True)
@@ -401,13 +455,13 @@ elif "P&L:" in modulo_activo:
     
     # CASCADA VERTICAL: SECCIÓN 3 - PROVEEDORES RCV (INSUMOS)
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
-    st.markdown("### 🛒 3. Proveedores RCV SII (Insumos de Comida y Empaques)")
-    st.write("Clasificación automática por Inteligencia Artificial Gemini excluyendo comisiones de aplicaciones.")
+    st.markdown("<div class='section-title'><span>🛒 3.</span> Proveedores RCV SII (Insumos de Comida y Empaques)</div>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.85rem; color:#8b949e; margin-bottom:10px;'>Clasificación automática por Inteligencia Artificial Gemini excluyendo comisiones de aplicaciones.</p>", unsafe_allow_html=True)
     if pl_data["desglose_proveedores"]["por_categoria"]:
         df_prov_cat = pd.DataFrame(list(pl_data["desglose_proveedores"]["por_categoria"].items()), columns=["Rubro IA", "Monto Neto Facturado"])
         st.dataframe(df_prov_cat.style.format({"Monto Neto Facturado": "${:,.0f}"}), use_container_width=True)
         
-        st.markdown("#### 🏆 Top 5 Proveedores de Insumos")
+        st.markdown("<p style='font-size:0.95rem; font-weight:700; color:#00f2fe; margin-top:15px; margin-bottom:8px;'>🏆 Top 5 Proveedores de Insumos</p>", unsafe_allow_html=True)
         df_top_prov = pd.DataFrame(list(pl_data["desglose_proveedores"]["top_10"].items())[:5], columns=["Razón Social", "Monto Neto"])
         st.table(df_top_prov.style.format({"Monto Neto": "${:,.0f}"}))
     else: st.info("No hay facturas de proveedores de insumos en este periodo.")
@@ -415,8 +469,8 @@ elif "P&L:" in modulo_activo:
     
     # CASCADA VERTICAL: SECCIÓN 4 - COMISIONES DE APLICACIONES Y TARJETAS
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
-    st.markdown("### 🔴 4. Comisiones de Aplicaciones y Tarjetas (SII)")
-    st.write("Facturas automáticas de Uber B.V., PedidosYa, Transbank y pasarelas de pago separadas para mantener la pureza contable.")
+    st.markdown("<div class='section-title'><span>🔴 4.</span> Comisiones de Aplicaciones y Tarjetas (SII)</div>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.85rem; color:#8b949e; margin-bottom:10px;'>Facturas automáticas de Uber B.V., PedidosYa, Transbank y pasarelas de pago separadas para mantener la pureza contable.</p>", unsafe_allow_html=True)
     if not pl_data["raw_data"]["comisiones"].empty:
         df_com_cat = pl_data["raw_data"]["comisiones"].groupby("nombre_proveedor")["monto_neto"].sum().reset_index()
         df_com_cat.columns = ["Entidad / Aplicación", "Comisión Neta Facturada"]
@@ -426,16 +480,16 @@ elif "P&L:" in modulo_activo:
     
     # SECCIÓN 5: POWERBI DASHBOARDS
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
-    st.markdown("### 📈 5. Inteligencia de Negocios (BI Dashboards)")
+    st.markdown("<div class='section-title'><span>📈 5.</span> Inteligencia de Negocios (BI Dashboards)</div>", unsafe_allow_html=True)
     bi1, bi2 = st.columns(2)
     with bi1:
-        st.markdown("#### Distribución de Ingresos por Canal")
+        st.markdown("<p style='font-size:0.9rem; font-weight:700; color:#c9d1d9;'>Distribución de Ingresos por Canal</p>", unsafe_allow_html=True)
         if not pl_data["raw_data"]["ingresos"].empty:
             df_bi_ing = pl_data["raw_data"]["ingresos"].groupby(["canal"])["monto"].sum().reset_index()
             st.bar_chart(df_bi_ing, x="canal", y="monto")
         else: st.info("Sin datos para graficar.")
     with bi2:
-        st.markdown("#### Distribución de Gasto en Insumos (IA)")
+        st.markdown("<p style='font-size:0.9rem; font-weight:700; color:#c9d1d9;'>Distribución de Gasto en Insumos (IA)</p>", unsafe_allow_html=True)
         if not pl_data["raw_data"]["proveedores"].empty:
             df_bi_sii = pl_data["raw_data"]["proveedores"].groupby(["categoria_ia"])["monto_neto"].sum().reset_index()
             st.bar_chart(df_bi_sii, x="categoria_ia", y="monto_neto")
@@ -444,8 +498,7 @@ elif "P&L:" in modulo_activo:
 
 # ----------------- VISTA 4: CARGA RCV SII Y REGISTRO MÓVIL -----------------
 elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
-    st.markdown("<h2 style='color: white;'>📥 Centro de Ingesta de Datos y Registro Móvil</h2>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<div class='section-title'><span>📥</span> Centro de Ingesta de Datos y Registro Móvil</div>", unsafe_allow_html=True)
     
     c1_c, c2_c = st.columns(2)
     
@@ -507,8 +560,7 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
 
 # ----------------- VISTA 5: PLANTILLAS DE MARCA (CONFIGURACIÓN) -----------------
 elif modulo_activo == "⚙️ Plantillas de Marca (Config)":
-    st.markdown("<h2 style='color: white;'>⚙️ Configuración de Plantillas Oficiales de Marca</h2>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<div class='section-title'><span>⚙️</span> Configuración de Plantillas Oficiales de Marca</div>", unsafe_allow_html=True)
     
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
     st.write("Sube aquí el diseño corporativo para la **Segunda Pantalla** (Direcciones). El sistema pegará esta imagen automáticamente detrás de la Portada en todos tus carruseles de marketing.")
@@ -522,9 +574,9 @@ elif modulo_activo == "⚙️ Plantillas de Marca (Config)":
     else:
         st.info("ℹ️ Estás usando la plantilla por defecto (Mano con teléfono).")
         
-    file_dir = st.file_uploader("Actualizar Plantilla de Direcciones", type=["png", "jpg", "jpeg"])
-    if file_dir:
-        Image.open(file_dir).convert("RGB").save(ruta_dir, "PNG")
-        st.success("Plantilla guardada exitosamente. Se aplicará a tus próximos ensamblados.")
-        st.rerun()
+        file_dir = st.file_uploader("Actualizar Plantilla de Direcciones", type=["png", "jpg", "jpeg"])
+        if file_dir:
+            Image.open(file_dir).convert("RGB").save(ruta_dir, "PNG")
+            st.success("Plantilla guardada exitosamente. Se aplicará a tus próximos ensamblados.")
+            st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
