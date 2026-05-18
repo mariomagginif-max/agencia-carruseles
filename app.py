@@ -414,9 +414,9 @@ elif "P&L:" in modulo_activo:
     
     st.markdown(f"<div class='section-title'><span>📊</span> Estado de Resultados P&L - {titulo_vista}</div>", unsafe_allow_html=True)
     
-    # Barra de Filtros de Fecha
+    # Barra de Filtros de Fecha (Predeterminado desde el 1 de Enero para capturar historial)
     c_f1, c_f2 = st.columns(2)
-    f_ini = c_f1.date_input("📅 Fecha Inicio Filtro", datetime(datetime.now().year, datetime.now().month, 1)).isoformat()
+    f_ini = c_f1.date_input("📅 Fecha Inicio Filtro", datetime(datetime.now().year, 1, 1)).isoformat()
     f_fin = c_f2.date_input("📅 Fecha Fin Filtro", datetime.now()).isoformat()
     
     st.markdown("---")

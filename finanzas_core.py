@@ -79,10 +79,10 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
     # Limpiar nombres de columnas
     df.columns = df.columns.str.strip().str.lower()
     
-    # Mapeo flexible de columnas SII
-    col_folio = next((c for c in df.columns if 'folio' in c or 'docto' in c or 'doc' in c), None)
+    # Mapeo flexible de columnas SII (Blindado contra colisiones)
+    col_folio = next((c for c in df.columns if ('folio' in c or 'docto' in c or 'doc' in c) and 'fecha' not in c and 'tipo' not in c), None)
     col_rut = next((c for c in df.columns if 'rut' in c), None)
-    col_razon = next((c for c in df.columns if 'razon' in c or 'razón' in c or 'nombre' in c or 'proveedor' in c), None)
+    col_razon = next((c for c in df.columns if ('razon' in c or 'razón' in c or 'nombre' in c or 'proveedor' in c) and 'rut' not in c), None)
     col_neto = next((c for c in df.columns if 'neto' in c), None)
     col_iva = next((c for c in df.columns if 'iva' in c), None)
     col_total = next((c for c in df.columns if 'total' in c), None)
@@ -103,13 +103,25 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
     
     for _, row in df.iterrows():
         try:
-            folio = str(row[col_folio]).strip()
+            folio_raw = str(row[col_folio]).strip()
+            if folio_raw.endswith('.0'): folio_raw = folio_raw[:-2]
+            folio = folio_raw
+            
             rut = str(row[col_rut]).strip()
             nombre = str(row[col_razon]).strip()
             neto = float(row[col_neto]) if pd.notna(row[col_neto]) else 0.0
             iva = float(row[col_iva]) if col_iva and pd.notna(row[col_iva]) else 0.0
             total = float(row[col_total]) if pd.notna(row[col_total]) else neto + iva
-            fecha = str(row[col_fecha]).strip() if col_fecha else ""
+            
+            fecha_raw = str(row[col_fecha]).strip() if col_fecha else ""
+            fecha_iso = ""
+            if fecha_raw:
+                try:
+                    dt = pd.to_datetime(fecha_raw, dayfirst=True)
+                    fecha_iso = dt.strftime('%Y-%m-%d')
+                except Exception:
+                    fecha_iso = fecha_raw[:10]
+            fecha = fecha_iso
             
             categoria = mapa_categorias.get(rut, "Servicios, Arriendos y Otros")
             
