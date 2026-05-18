@@ -169,7 +169,8 @@ with st.sidebar:
     st.markdown("---")
     
     with st.expander("🔑 Configuración Avanzada (Desplegable)"):
-        api_key = st.text_input("Gemini API Key", value="AIzaSyA6IP0L4gTAfANAvaXHkCtPsQuOEBHrAOs", type="password")
+        api_key = st.text_input("Gemini API Key", value="", type="password")
+        st.markdown("[👉 Obtener API Key Gratis aquí](https://aistudio.google.com/app/apikey)")
         
     st.markdown("---")
     st.info("💡 **Tips:**\n\n1. Sube tu Portada (Foto o Video).\n2. Deja que la IA piense.\n3. Descarga el ZIP y publica.")
