@@ -529,10 +529,9 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
                         st.error(f"Error procesando archivo: {e}")
                         
         st.markdown("---")
-        if st.button("🧹 Limpiar Facturas SII de esta Sociedad (Reiniciar Ingesta)", type="secondary", use_container_width=True):
+        if st.button("🧹 Limpiar Toda la Base de Datos de Facturas SII (Reinicio Completo)", type="secondary", use_container_width=True):
             db.eliminar_facturas_sociedad(soc_act_ing)
-            st.success("✅ Base de datos limpiada exitosamente. Ahora puedes volver a subir tu archivo del SII para una carga 100% limpia.")
-            st.rerun()
+            st.success("✅ Base de datos limpiada exitosamente en cero. Vuelve a subir tu archivo del SII y dale a Procesar Facturas para una carga 100% limpia.")
             
         st.markdown("</div>", unsafe_allow_html=True)
                         

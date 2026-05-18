@@ -182,6 +182,6 @@ def eliminar_registro(tabla, registro_id):
 def eliminar_facturas_sociedad(sociedad):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM facturas_sii WHERE sociedad = ?", (sociedad,))
+    cursor.execute("DELETE FROM facturas_sii")
     conn.commit()
     conn.close()
