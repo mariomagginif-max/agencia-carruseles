@@ -9,7 +9,10 @@ import base64
 import socket
 import zipfile
 from html2image import Html2Image
-
+import finanzas_db as db
+import finanzas_core as core
+import pandas as pd
+from datetime import datetime
 # ================= CONFIGURACIÓN DE PÁGINA =================
 st.set_page_config(page_title="Agencia Automatizada - IA", page_icon="🚀", layout="wide")
 
@@ -179,7 +182,8 @@ with st.sidebar:
 st.markdown("<div class='premium-header'><h1>🚀 Agencia Autónoma IA</h1><p>Motor de Ensamblado de Carruseles Profesionales</p></div>", unsafe_allow_html=True)
 
 # ================= TABS =================
-tab_ensamblador, tab_config = st.tabs(["🎨 Ensamblador de Carruseles", "⚙️ Plantillas de Marca"])
+tab_ensamblador, tab_finanzas, tab_config = st.tabs(["🎨 Ensamblador de Carruseles", "📊 Inteligencia Financiera P&L", "⚙️ Plantillas de Marca"])
+
 
 # ----------------- TAB: ENSAMBLADOR -----------------
 with tab_ensamblador:
@@ -346,3 +350,142 @@ with tab_config:
         Image.open(file_dir).convert("RGB").save(ruta_dir, "PNG")
         st.success("Plantilla guardada exitosamente. Se aplicará a tus próximos ensamblados.")
         st.rerun()
+
+# ----------------- TAB: INTELIGENCIA FINANCIERA (P&L y BI) -----------------
+with tab_finanzas:
+    st.markdown("<h2 style='text-align: center; color: white;'>🏢 Panel de Inteligencia Financiera y P&L</h2>", unsafe_allow_html=True)
+    
+    # Selector Global de Sociedad
+    entidad_sel = st.radio(
+        "**Selecciona Entidad a Gestionar:**",
+        ["Sociedad Principal (Providencia, Ñuñoa, Stgo Centro)", "Local Maipú (Independiente)"],
+        horizontal=True
+    )
+    
+    sociedad_activa = "Sociedad_Principal" if "Principal" in entidad_sel else "Local_Maipu"
+    
+    st.markdown("---")
+    
+    sub_carga, sub_pl, sub_bi = st.tabs(["📥 Carga RCV & Ingreso Móvil", "📊 Estado de Resultados (P&L)", "📈 PowerBI Dashboards"])
+    
+    # === SUB-TAB 1: CARGA RCV Y REGISTRO MÓVIL ===
+    with sub_carga:
+        c1_c, c2_c = st.columns(2)
+        
+        with c1_c:
+            st.subheader("📥 1. Carga RCV del SII (Excel/CSV)")
+            st.info("Sube el archivo exportado del SII. El sistema filtrará duplicados automáticamente usando RUT + Folio.")
+            archivo_sii = st.file_uploader("Selecciona archivo RCV", type=["csv", "xlsx", "xls"], key="up_sii")
+            
+            if archivo_sii:
+                if st.button("⚡ Procesar Facturas SII con IA Gemini", type="primary", use_container_width=True):
+                    with st.spinner("🤖 Analizando facturas y clasificando proveedores con Gemini..."):
+                        try:
+                            nuevas, duplicadas = core.procesar_archivo_sii(archivo_sii, archivo_sii.name, sociedad_activa, api_key)
+                            st.success(f"✅ Proceso Completado: **{nuevas} facturas nuevas cargadas** | **{duplicadas} duplicadas ignoradas**.")
+                        except Exception as e:
+                            st.error(f"Error procesando archivo: {e}")
+                            
+        with c2_c:
+            st.subheader("📱 2. Ingreso Rápido Móvil")
+            st.info("Reporta ingresos diarios o costos fijos directamente desde tu celular.")
+            
+            with st.form("form_movil"):
+                tipo_reg = st.selectbox("Tipo de Movimiento", ["Ingreso Venta", "Costo Fijo Directo"])
+                
+                if "Principal" in entidad_sel:
+                    local_reg = st.selectbox("Local", ["Providencia", "Ñuñoa", "Santiago Centro"])
+                else:
+                    local_reg = st.selectbox("Local", ["Maipú"])
+                    
+                if tipo_reg == "Ingreso Venta":
+                    cat_reg = st.selectbox("Canal de Venta", ["UberEats", "PedidosYa", "Transbank", "Efectivo", "DidiFood", "Otro"])
+                else:
+                    cat_reg = st.selectbox("Categoría de Costo", ["Sueldos y Leyes Sociales", "Arriendo", "Luz, Agua y Gas", "Marketing", "Mantención", "Otro"])
+                    
+                monto_reg = st.number_input("Monto ($ CLP)", min_value=0.0, step=1000.0)
+                fecha_reg = st.date_input("Fecha", datetime.now()).isoformat()
+                notas_reg = st.text_input("Notas (Opcional)")
+                
+                if st.form_submit_button("💾 Guardar Movimiento", type="primary", use_container_width=True):
+                    if monto_reg > 0:
+                        if tipo_reg == "Ingreso Venta":
+                            db.registrar_ingreso(sociedad_activa, local_reg, cat_reg, monto_reg, fecha_reg, notas_reg)
+                        else:
+                            db.registrar_costo_fijo(sociedad_activa, local_reg, cat_reg, monto_reg, fecha_reg, notas_reg)
+                        st.success("✅ Registro guardado exitosamente en la base de datos.")
+                    else:
+                        st.warning("⚠️ Ingresa un monto mayor a 0.")
+                        
+    # === SUB-TAB 2: ESTADO DE RESULTADOS (P&L) ===
+    with sub_pl:
+        st.subheader(f"📊 Matriz de Estado de Resultados - {entidad_sel}")
+        
+        c_f1, c_f2 = st.columns(2)
+        f_ini = c_f1.date_input("Fecha Inicio Filtro", datetime(datetime.now().year, datetime.now().month, 1)).isoformat()
+        f_fin = c_f2.date_input("Fecha Fin Filtro", datetime.now()).isoformat()
+        
+        pl_data = core.calcular_pl_consolidado(sociedad_activa, f_ini, f_fin)
+        res = pl_data["resumen"]
+        
+        # Tarjetas de Resumen KPI
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("💰 Ingresos Totales", f"${res['ingresos_totales']:,.0f}")
+        k2.metric("🏢 Costos Fijos Directos", f"${res['costos_fijos_totales']:,.0f}")
+        k3.metric("🛒 Proveedores RCV (Neto)", f"${res['proveedores_totales_neto']:,.0f}")
+        k4.metric("🏆 Margen Neto Real", f"${res['margen_neto']:,.0f}", f"{res['porcentaje_margen']:.1f}%")
+        
+        st.markdown("---")
+        
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            st.markdown("#### 🟢 Desglose de Ingresos por Canal")
+            if pl_data["desglose_ingresos"]["por_canal"]:
+                df_ing_canal = pd.DataFrame(list(pl_data["desglose_ingresos"]["por_canal"].items()), columns=["Canal", "Monto"])
+                st.dataframe(df_ing_canal.style.format({"Monto": "${:,.0f}"}), use_container_width=True)
+            else: st.info("No hay ingresos registrados en este periodo.")
+            
+        with col_t2:
+            st.markdown("#### 🟡 Desglose de Costos Fijos por Categoría")
+            if pl_data["desglose_costos_fijos"]["por_categoria"]:
+                df_cf_cat = pd.DataFrame(list(pl_data["desglose_costos_fijos"]["por_categoria"].items()), columns=["Categoría", "Monto"])
+                st.dataframe(df_cf_cat.style.format({"Monto": "${:,.0f}"}), use_container_width=True)
+            else: st.info("No hay costos fijos registrados en este periodo.")
+            
+        st.markdown("#### 🔴 Bolsón General de Proveedores (Clasificación IA)")
+        if pl_data["desglose_proveedores"]["por_categoria"]:
+            df_prov_cat = pd.DataFrame(list(pl_data["desglose_proveedores"]["por_categoria"].items()), columns=["Categoría IA", "Monto Neto"])
+            st.dataframe(df_prov_cat.style.format({"Monto Neto": "${:,.0f}"}), use_container_width=True)
+        else: st.info("No hay facturas de proveedores registradas en este periodo.")
+
+    # === SUB-TAB 3: POWERBI DASHBOARDS ===
+    with sub_bi:
+        st.subheader(f"📈 Inteligencia de Negocios (BI) - {entidad_sel}")
+        
+        bi1, bi2 = st.columns(2)
+        
+        with bi1:
+            st.markdown("#### 📊 Tendencia de Ingresos por Canal")
+            if not pl_data["raw_data"]["ingresos"].empty:
+                df_bi_ing = pl_data["raw_data"]["ingresos"].groupby(["canal"])["monto"].sum().reset_index()
+                st.bar_chart(df_bi_ing, x="canal", y="monto")
+            else: st.info("Sin datos para graficar.")
+            
+            st.markdown("#### 🏢 Distribución de Costos Fijos")
+            if not pl_data["raw_data"]["costos_fijos"].empty:
+                df_bi_cf = pl_data["raw_data"]["costos_fijos"].groupby(["categoria"])["monto"].sum().reset_index()
+                st.bar_chart(df_bi_cf, x="categoria", y="monto")
+            else: st.info("Sin datos para graficar.")
+            
+        with bi2:
+            st.markdown("#### 🛒 Distribución de Gasto en Proveedores (IA)")
+            if not pl_data["raw_data"]["facturas_sii"].empty:
+                df_bi_sii = pl_data["raw_data"]["facturas_sii"].groupby(["categoria_ia"])["monto_neto"].sum().reset_index()
+                st.bar_chart(df_bi_sii, x="categoria_ia", y="monto_neto")
+            else: st.info("Sin datos para graficar.")
+            
+            st.markdown("#### 🏆 Top 5 Proveedores Mayores del Mes")
+            if pl_data["desglose_proveedores"]["top_10"]:
+                df_top = pd.DataFrame(list(pl_data["desglose_proveedores"]["top_10"].items())[:5], columns=["Proveedor", "Monto Neto"])
+                st.dataframe(df_top.style.format({"Monto Neto": "${:,.0f}"}), use_container_width=True)
+            else: st.info("Sin datos para graficar.")
