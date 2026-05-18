@@ -113,6 +113,11 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
             
             categoria = mapa_categorias.get(rut, "Servicios, Arriendos y Otros")
             
+            # Filtro de hierro para Comisiones de Aplicaciones y Tarjetas
+            nombre_lower = nombre.lower()
+            if any(k in nombre_lower for k in ['uber', 'pedidos ya', 'pedidosya', 'rappi', 'didi', 'transbank', 'mercado pago', 'klap', 'fpay']):
+                categoria = "Comisiones de Aplicaciones y Tarjetas"
+            
             # Insertar en base de datos (con UNIQUE constraint)
             insertada = db.registrar_factura_sii(
                 sociedad=sociedad,
@@ -135,12 +140,12 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
             
     return nuevas_cargadas, duplicadas_ignoradas
 
-# ================= MOTOR DE CONSOLIDACIÓN P&L =================
+# ================= MOTOR DE CONSOLIDACIÓN P&L (CASCADA VERTICAL) =================
 
 def calcular_pl_consolidado(sociedad, fecha_inicio=None, fecha_fin=None):
     """
-    Calcula el Estado de Resultados consolidado para una sociedad.
-    Retorna un diccionario con la estructura financiera completa.
+    Calcula el Estado de Resultados consolidado en cascada vertical.
+    Separa explícitamente las comisiones de apps de delivery de los proveedores puros.
     """
     ingresos = db.obtener_ingresos(sociedad, fecha_inicio, fecha_fin)
     costos_fijos = db.obtener_costos_fijos(sociedad, fecha_inicio, fecha_fin)
@@ -153,22 +158,32 @@ def calcular_pl_consolidado(sociedad, fecha_inicio=None, fecha_fin=None):
     ingresos_por_local = df_ing.groupby('local')['monto'].sum().to_dict() if not df_ing.empty else {}
     ingresos_por_canal = df_ing.groupby('canal')['monto'].sum().to_dict() if not df_ing.empty else {}
     
-    # 2. COSTOS FIJOS DIRECTOS (Desglose por Local y Categoría)
+    # 2. COMPRAS / COSTOS FIJOS DIRECTOS
     df_cf = pd.DataFrame(costos_fijos)
     total_costos_fijos = df_cf['monto'].sum() if not df_cf.empty else 0.0
     
     cf_por_local = df_cf.groupby('local')['monto'].sum().to_dict() if not df_cf.empty and 'local' in df_cf.columns else {}
     cf_por_categoria = df_cf.groupby('categoria')['monto'].sum().to_dict() if not df_cf.empty else {}
     
-    # 3. PROVEEDORES RCV (Bolsón General Consolidado)
+    # 3. PROVEEDORES RCV Y COMISIONES DE APLICACIONES (SEPARACIÓN DE HIERRO)
     df_sii = pd.DataFrame(facturas_sii)
-    total_proveedores_neto = df_sii['monto_neto'].sum() if not df_sii.empty else 0.0
     
-    proveedores_por_categoria = df_sii.groupby('categoria_ia')['monto_neto'].sum().to_dict() if not df_sii.empty else {}
-    top_proveedores = df_sii.groupby('nombre_proveedor')['monto_neto'].sum().sort_values(ascending=False).head(10).to_dict() if not df_sii.empty else {}
+    if not df_sii.empty:
+        df_comisiones = df_sii[df_sii['categoria_ia'] == 'Comisiones de Aplicaciones y Tarjetas']
+        df_proveedores = df_sii[df_sii['categoria_ia'] != 'Comisiones de Aplicaciones y Tarjetas']
+    else:
+        df_comisiones = pd.DataFrame()
+        df_proveedores = pd.DataFrame()
+        
+    total_comisiones = df_comisiones['monto_neto'].sum() if not df_comisiones.empty else 0.0
+    total_proveedores_neto = df_proveedores['monto_neto'].sum() if not df_proveedores.empty else 0.0
     
-    # 4. MARGEN NETO REAL
-    margen_neto = total_ingresos - total_costos_fijos - total_proveedores_neto
+    proveedores_por_categoria = df_proveedores.groupby('categoria_ia')['monto_neto'].sum().to_dict() if not df_proveedores.empty else {}
+    top_proveedores = df_proveedores.groupby('nombre_proveedor')['monto_neto'].sum().sort_values(ascending=False).head(10).to_dict() if not df_proveedores.empty else {}
+    top_comisiones = df_comisiones.groupby('nombre_proveedor')['monto_neto'].sum().sort_values(ascending=False).head(5).to_dict() if not df_comisiones.empty else {}
+    
+    # 4. MARGEN NETO REAL (CASCADA VERTICAL)
+    margen_neto = total_ingresos - total_costos_fijos - total_proveedores_neto - total_comisiones
     porcentaje_margen = (margen_neto / total_ingresos * 100) if total_ingresos > 0 else 0.0
     
     return {
@@ -176,6 +191,7 @@ def calcular_pl_consolidado(sociedad, fecha_inicio=None, fecha_fin=None):
             "ingresos_totales": total_ingresos,
             "costos_fijos_totales": total_costos_fijos,
             "proveedores_totales_neto": total_proveedores_neto,
+            "comisiones_totales": total_comisiones,
             "margen_neto": margen_neto,
             "porcentaje_margen": porcentaje_margen
         },
@@ -191,9 +207,13 @@ def calcular_pl_consolidado(sociedad, fecha_inicio=None, fecha_fin=None):
             "por_categoria": proveedores_por_categoria,
             "top_10": top_proveedores
         },
+        "desglose_comisiones": {
+            "top_5": top_comisiones
+        },
         "raw_data": {
             "ingresos": df_ing,
             "costos_fijos": df_cf,
-            "facturas_sii": df_sii
+            "proveedores": df_proveedores,
+            "comisiones": df_comisiones
         }
     }
