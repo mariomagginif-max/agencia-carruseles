@@ -456,12 +456,19 @@ elif "P&L:" in modulo_activo:
     # CASCADA VERTICAL: SECCIÓN 3 - PROVEEDORES RCV (INSUMOS)
     st.markdown("<div class='glass-container'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'><span>🛒 3.</span> Proveedores RCV SII (Insumos de Comida y Empaques)</div>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size:0.85rem; color:#8b949e; margin-bottom:10px;'>Clasificación automática por Inteligencia Artificial Gemini excluyendo comisiones de aplicaciones.</p>", unsafe_allow_html=True)
-    if pl_data["desglose_proveedores"]["por_categoria"]:
-        df_prov_cat = pd.DataFrame(list(pl_data["desglose_proveedores"]["por_categoria"].items()), columns=["Rubro IA", "Monto Neto Facturado"])
-        st.dataframe(df_prov_cat.style.format({"Monto Neto Facturado": "${:,.0f}"}), use_container_width=True)
-        
-        st.markdown("<p style='font-size:0.95rem; font-weight:700; color:#00f2fe; margin-top:15px; margin-bottom:8px;'>🏆 Top 5 Proveedores de Insumos</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:0.85rem; color:#8b949e; margin-bottom:15px;'>Listado ejecutivo agrupado por Razón Social. Haz clic en cada proveedor para auditar RUT, Folio y Fechas.</p>", unsafe_allow_html=True)
+    
+    df_provs = pl_data["raw_data"]["proveedores"]
+    if not df_provs.empty:
+        proveedores_agrupados = df_provs.groupby("nombre_proveedor")
+        for nombre_prov, group in proveedores_agrupados:
+            monto_total_prov = group['monto_total'].sum()
+            with st.expander(f"🏢 {nombre_prov} — Monto Total: ${monto_total_prov:,.0f}"):
+                df_detalle = group[["rut_proveedor", "folio", "monto_total", "fecha_emision"]].copy()
+                df_detalle.columns = ["RUT / Deudor", "N° Factura (Folio)", "Monto Total ($)", "Fecha Emisión"]
+                st.dataframe(df_detalle.style.format({"Monto Total ($)": "${:,.0f}"}), use_container_width=True)
+                
+        st.markdown("<p style='font-size:0.95rem; font-weight:700; color:#00f2fe; margin-top:20px; margin-bottom:8px;'>🏆 Top 5 Proveedores Mayores</p>", unsafe_allow_html=True)
         df_top_prov = pd.DataFrame(list(pl_data["desglose_proveedores"]["top_10"].items())[:5], columns=["Razón Social", "Monto Neto"])
         st.table(df_top_prov.style.format({"Monto Neto": "${:,.0f}"}))
     else: st.info("No hay facturas de proveedores de insumos en este periodo.")
@@ -520,6 +527,13 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
                         st.success(f"✅ Proceso Completado: **{nuevas} facturas nuevas cargadas** | **{duplicadas} duplicadas ignoradas**.")
                     except Exception as e:
                         st.error(f"Error procesando archivo: {e}")
+                        
+        st.markdown("---")
+        if st.button("🧹 Limpiar Facturas SII de esta Sociedad (Reiniciar Ingesta)", type="secondary", use_container_width=True):
+            db.eliminar_facturas_sociedad(soc_act_ing)
+            st.success("✅ Base de datos limpiada exitosamente. Ahora puedes volver a subir tu archivo del SII para una carga 100% limpia.")
+            st.rerun()
+            
         st.markdown("</div>", unsafe_allow_html=True)
                         
     with c2_c:
