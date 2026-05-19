@@ -98,6 +98,9 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
     # Llamar a Gemini para clasificar
     mapa_categorias = clasificar_proveedores_batch(proveedores_unicos, api_key)
     
+    # PURGA AUTOMÁTICA DE LA BASE DE DATOS ANTES DE LA INGESTA
+    db.eliminar_facturas_sociedad(sociedad)
+    
     nuevas_cargadas = 0
     duplicadas_ignoradas = 0
     
