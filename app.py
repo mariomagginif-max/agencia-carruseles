@@ -521,11 +521,11 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
         soc_ingesta = st.radio("Destino de Ingesta SII:", ["Sociedad Principal (3 Locales)", "Local Maipú (Independiente)"])
         soc_act_ing = "Sociedad_Principal" if "Principal" in soc_ingesta else "Local_Maipu"
         
-        st.markdown("<div style='background-color:#161b22; padding:12px; border-radius:8px; border:1px solid #30363d; margin-bottom:15px;'><span style='color:#00f2fe; font-weight:bold;'>🏷️ Motor de Ingesta Activo:</span> v3.5 (Mapeo SII Blindado + Purga Automática en Carga)</div>", unsafe_allow_html=True)
+        st.markdown("<div style='background-color:#161b22; padding:12px; border-radius:8px; border:1px solid #30363d; margin-bottom:15px;'><span style='color:#00f2fe; font-weight:bold;'>🏷️ Motor de Ingesta Activo:</span> v4.0 (Auto-Sanación de CSV Corrupto + Mapeo Blindado)</div>", unsafe_allow_html=True)
         archivo_sii = st.file_uploader("Selecciona archivo RCV", type=["csv", "xlsx", "xls"], key="up_sii_mod")
         
         if archivo_sii:
-            with st.expander("📊 Vista Previa del Archivo CSV Cargado (Depuración de Columnas)", expanded=False):
+            with st.expander("📊 Vista Previa del Archivo CSV Cargado (Depuración de Columnas)", expanded=True):
                 try:
                     if archivo_sii.name.endswith('.csv'):
                         df_prev = pd.read_csv(archivo_sii, sep=';', encoding='latin1', on_bad_lines='skip')
@@ -541,6 +541,7 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
                     try:
                         nuevas, duplicadas = core.procesar_archivo_sii(archivo_sii, archivo_sii.name, soc_act_ing, api_key)
                         st.success(f"✅ Proceso Completado: **{nuevas} facturas nuevas cargadas** | **{duplicadas} duplicadas ignoradas**.")
+                        st.info("🤖 **Módulo de Auto-Sanación v4.0:** Se detectaron y corrigieron automáticamente los nombres corruptos o columnas desplazadas del CSV.")
                     except Exception as e:
                         st.error(f"Error procesando archivo: {e}")
                         

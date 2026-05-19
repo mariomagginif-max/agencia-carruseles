@@ -112,6 +112,18 @@ def procesar_archivo_sii(file_buffer, filename, sociedad, api_key):
             
             rut = str(row[col_rut]).strip()
             nombre = str(row[col_razon]).strip()
+            
+            # AUTO-HEALING BLINDADO CONTRA CSV CORRUPTO O COLUMNAS DESPLAZADAS
+            if nombre.startswith('_arrow_') or nombre.isdigit() or len(nombre) <= 3:
+                # Buscar en toda la fila alguna columna que tenga texto real de proveedor
+                for c in df.columns:
+                    val = str(row[c]).strip()
+                    if val and not val.isdigit() and not val.startswith('_arrow_') and len(val) > 3 and c != col_rut and c != col_folio and c != col_fecha:
+                        nombre = val # Encontramos el nombre real del proveedor en otra columna
+                        break
+                if nombre.startswith('_arrow_') or nombre.isdigit() or len(nombre) <= 3:
+                    nombre = f"Proveedor RUT {rut}" # Fallback final absoluto
+
             neto = float(row[col_neto]) if pd.notna(row[col_neto]) else 0.0
             iva = float(row[col_iva]) if col_iva and pd.notna(row[col_iva]) else 0.0
             total = float(row[col_total]) if pd.notna(row[col_total]) else neto + iva
