@@ -8,9 +8,13 @@ import io
 import base64
 import socket
 import zipfile
+import html2image
 from html2image import Html2Image
 import finanzas_db as db
 import finanzas_core as core
+import importlib
+importlib.reload(db)
+importlib.reload(core)
 import pandas as pd
 from datetime import datetime
 
@@ -517,9 +521,21 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
         soc_ingesta = st.radio("Destino de Ingesta SII:", ["Sociedad Principal (3 Locales)", "Local Maipú (Independiente)"])
         soc_act_ing = "Sociedad_Principal" if "Principal" in soc_ingesta else "Local_Maipu"
         
+        st.markdown("<div style='background-color:#161b22; padding:12px; border-radius:8px; border:1px solid #30363d; margin-bottom:15px;'><span style='color:#00f2fe; font-weight:bold;'>🏷️ Motor de Ingesta Activo:</span> v3.5 (Mapeo SII Blindado + Purga Automática en Carga)</div>", unsafe_allow_html=True)
         archivo_sii = st.file_uploader("Selecciona archivo RCV", type=["csv", "xlsx", "xls"], key="up_sii_mod")
         
         if archivo_sii:
+            with st.expander("📊 Vista Previa del Archivo CSV Cargado (Depuración de Columnas)", expanded=False):
+                try:
+                    if archivo_sii.name.endswith('.csv'):
+                        df_prev = pd.read_csv(archivo_sii, sep=';', encoding='latin1', on_bad_lines='skip')
+                    else:
+                        df_prev = pd.read_excel(archivo_sii)
+                    st.dataframe(df_prev.head(10), use_container_width=True)
+                    archivo_sii.seek(0) # Reset buffer pointer
+                except Exception as e:
+                    st.error(f"No se pudo previsualizar: {e}")
+
             if st.button("⚡ Procesar Facturas SII con IA Gemini", type="primary", use_container_width=True):
                 with st.spinner("🤖 Analizando facturas, separando comisiones y clasificando con Gemini..."):
                     try:
@@ -531,6 +547,10 @@ elif modulo_activo == "📥 Carga RCV SII & Registro Móvil":
         st.markdown("---")
         if st.button("🧹 Limpiar Toda la Base de Datos de Facturas SII (Reinicio Completo)", type="secondary", use_container_width=True):
             db.eliminar_facturas_sociedad(soc_act_ing)
+            st.session_state['db_limpiada'] = True
+            st.rerun()
+            
+        if st.session_state.get('db_limpiada'):
             st.success("✅ Base de datos limpiada exitosamente en cero. Vuelve a subir tu archivo del SII y dale a Procesar Facturas para una carga 100% limpia.")
             
         st.markdown("</div>", unsafe_allow_html=True)
